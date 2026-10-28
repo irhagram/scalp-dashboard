@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="refresh" content="60">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAPER Desk - Solana scalps</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--line:#30363d;--tx:#e6edf3;--mut:#8b949e;--g:#3fb950;--r:#f85149;--y:#d29922;--b:#58a6ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+.banner{background:repeating-linear-gradient(45deg,#3d2b00,#3d2b00 12px,#4a3500 12px,#4a3500 24px);color:#ffd866;text-align:center;
+ font-weight:700;letter-spacing:.06em;padding:8px 10px;border-bottom:1px solid #6b4f00}
+.banner small{display:block;font-weight:400;letter-spacing:0;color:#f0d78c}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px;padding:14px 18px 4px;max-width:1200px;margin:auto}
+h1{font-size:20px;margin:0}h2{font-size:15px;margin:0 0 10px;color:var(--b);text-transform:uppercase;letter-spacing:.05em}
+.upd{color:var(--mut);font-size:13px}.upd b{color:var(--tx)}
+main{max-width:1200px;margin:auto;padding:8px 14px 40px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+section{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:10px}
+.kpi .l{color:var(--mut);font-size:12px}.kpi .v{font-size:22px;font-weight:700;margin-top:2px}.kpi .s{color:var(--mut);font-size:12px}
+.pos{color:var(--g)}.neg{color:var(--r)}.mut{color:var(--mut)}.warn{color:var(--y)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{color:var(--mut);font-weight:600;font-size:12px}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr:hover td{background:#1c2128}
+.empty{color:var(--mut);padding:18px;text-align:center;border:1px dashed var(--line);border-radius:8px}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.p-act{background:#12361d;color:var(--g)}.p-drop{background:#3d1214;color:var(--r)}.p-bench{background:#21262d;color:var(--mut)}
+.dots span{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:3px;background:#30363d}.dots span.on{background:var(--r)}
+.funnel{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.step{background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:10px}.step .v{font-size:20px;font-weight:700}
+.bar{height:6px;background:#21262d;border-radius:4px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--b)}
+.note{color:var(--mut);font-size:12px;margin-top:8px}
+details summary{cursor:pointer;color:var(--b)}pre{white-space:pre-wrap;font-size:12px;color:#c9d1d9;background:#0d1117;padding:10px;border-radius:8px;border:1px solid var(--line)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+.meter{height:10px;background:#21262d;border-radius:6px;position:relative;margin-top:10px}
+.meter i{position:absolute;top:0;bottom:0;left:0;border-radius:6px}.meter b{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--r)}
+@media(max-width:600px){header{padding:10px 12px 0}main{padding:6px 8px 30px}section{padding:10px}.kpi .v{font-size:18px}.kpis{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}
+</style></head><body>
+<div class="banner">PAPER / SIMULATION MODE - no wallet, no orders, nothing is sent on-chain
+<small>$100 portfolio plan is <b>planned_not_active</b>: balances below are simulated against that plan; bank limits are not enforced by the desk.</small></div>
+<header><h1>Solana memecoin scalp desk</h1><div class="upd">Last updated <b id="gen"></b> &middot; auto-refresh 60s<br><span id="lastw"></span></div></header>
+<main>
+<section id="balance"><h2>Simulated balance</h2><div class="kpis" id="bal"></div><div id="meter"></div><div class="note" id="balnote"></div></section>
+<section id="positions"><h2>Active positions <span class="mut" id="poscount"></span></h2><div id="pos"></div></section>
+<section id="stats"><h2>Overall stats</h2><div class="kpis" id="st"></div></section>
+<section id="history"><h2>Trade history</h2><div id="hist"></div></section>
+<section id="traders"><h2>Followed traders - FOMO 7d top 10</h2><div id="tr"></div><div id="offb"></div></section>
+<section id="pipeline"><h2>Pipeline funnel</h2><div id="fun"></div></section>
+<section id="report"><details><summary>report.py summary (last 24h)</summary><pre id="rep"></pre></details></section>
+</main>
+<script id="desk-data" type="application/json">{"generated":"2026-10-29 03:27:53 WIB","generated_ts":1793219273.3308473,"last_desk_write":"2026-10-29 03:19:04 WIB","mode":"paper","execution_path":"fomo_manual_approve","loss_limit":3,"balance":{"bank_start":100,"realized":0,"unrealized":0.0,"unreal_known":0,"open_count":0,"equity":100.0,"realized_balance":100,"deployed":0,"free_cash":100,"plan":{"status":"planned_not_active","bank_start_usd":100,"position_size_usd":10,"max_open_positions":3,"fee_reserve_usd":40,"first_test_trades":20,"loss_buffer_usd":30,"halt_balance_usd":60,"halt_action":"stop all signals and ask Irham for evaluation; never top up"},"fee_rate":0.005,"fee_min":0.95,"stop_pct":-25,"breakeven_pct":21.0,"exit_rules":"stop -25% | trail 15% below peak once +50% | hard TP +100% | time stop 6h | exit when source wallet sells"},"positions":[],"trades":[],"stats":{"total":0,"wins":0,"losses":0,"win_rate":null,"realized":0,"fees_closed":0,"fees_open":0,"avg_win":null,"avg_loss":null,"best":null,"worst":null,"reasons":{}},"traders":[{"handle":"pointfarmcap","rank":1,"pnl7d":537861.6087296349,"pnl24h":532160.1083215782,"pnl30d":-3970413.921307237,"trades":3639,"wallet":"Beqv6dzTcjV2eodo8RRXCiCcnSYrS1vkQKhfqwHXqeit","verified":true,"status":"bench","consec":0,"wins":0,"losses":0,"added":null,"dropped":null,"ledger_wl":[0,0]},{"handle":"the__solstice","rank":2,"pnl7d":245333.4408169305,"pnl24h":163272.268105709,"pnl30d":-2836159.6776838913,"trades":616,"wallet":"4ugDhHJ8XDXAeABmrNmGffFaLbJb9BkPyiFGVSV9ocwo","verified":true,"status":"bench","consec":0,"wins":0,"losses":0,"added":null,"dropped":null,"ledger_wl":[0,0]},{"handle":"monke365","rank":3,"pnl7d":166599.424548432,"pnl24h":-40208.68593171309,"pnl30d":-717025.4191642033,"trades":30,"wallet":"5B9YG9eutctcKc2AQ3MmC3kUHqAizVpsXttXJDfxhg8t","verified":true,"status":"bench","consec":0,"wins":0,"losses":0,"added":null,"dropped":null,"ledger_wl":[0,0]},{"handle":"tvmx","rank":4,"pnl7d":461558.7801868147,"pnl24h":34322.96917889966,"pnl30d":-3925658.2597398316,"trades":1508,"wallet":"F5hkYsi8JxjyA2JHN5CA7MbnnhWubkXB2ZQB7Gkaxqs6","verified":true,"status":"bench","consec":0,"wins":0,"losses":0,"added":null,"dropped":null,"ledger_wl":[0,0]},{"handle":"escobarpablo","rank":5,"pnl7d":13644.047331636015,"pnl24h":165097.87151823417,"pnl30d":295950.89848774095,"trades":177,"wallet":"6MsBTRvTtmXyHSQNSr7poB6ChhMKtS3AuG98Wg5fEh4o","verified":true,"status":"active","consec":0,"wins":0,"losses":0,"added":"2026-10-29 03:16:41 WIB","dropped":null,"ledger_wl":[0,0]},{"handle":"g41t3r98","rank":6,"pnl7d":33012.80083453028,"pnl24h":18865.377484187535,"pnl30d":74687.52937089163,"trades":81,"wallet":"4t5cayg6FDWkyQwyuYq9DqcRRCQ7e6JXyf9J7f2wfZQW","verified":true,"status":"active","consec":0,"wins":0,"losses":0,"added":"2026-10-29 03:16:41 WIB","dropped":null,"ledger_wl":[0,0]},{"handle":"jusatrades","rank":7,"pnl7d":161237.9093865906,"pnl24h":24269.600299244106,"pnl30d":162558.11805609215,"trades":74,"wallet":"3GVsTbR5KL4voNTC5Q9G1gaUMfcJ7pZCj8SZ8HybmdhY","verified":true,"status":"active","consec":0,"wins":0,"losses":0,"added":"2026-10-29 03:16:41 WIB","dropped":null,"ledger_wl":[0,0]},{"handle":"imbrentjames","rank":8,"pnl7d":123907.87701462093,"pnl24h":49226.24024610594,"pnl30d":-525437.4739231393,"trades":201,"wallet":"AHgfahqfdE4BgiPPRTGtaMtqxN7pyB1t8b6tvzVpo1Rt","verified":true,"status":"bench","consec":0,"wins":0,"losses":0,"added":null,"dropped":null,"ledger_wl":[0,0]},{"handle":"awtorkowski7","rank":9,"pnl7d":29718.307574385064,"pnl24h":17204.210314437536,"pnl30d":69821.32100633085,"trades":299,"wallet":"7zs3Cda5C8XWadmFKKfuPyXpo78F5AFY6RXQ3Ec5p9k7","verified":true,"status":"active","consec":0,"wins":0,"losses":0,"added":"2026-10-29 03:16:41 WIB","dropped":null,"ledger_wl":[0,0]},{"handle":"pressingprofits","rank":10,"pnl7d":79950.09218277475,"pnl24h":-12899.23030818232,"pnl30d":84151.58563023261,"trades":139,"wallet":"6fK8YaWvPKdKAaBUNw5ikpNf5Q91GJe5agf5CZHegz6J","verified":true,"status":"bench","consec":0,"wins":0,"losses":0,"added":null,"dropped":null,"ledger_wl":[0,0]}],"off_board":[{"handle":"grovyle","wallet":"HcSVPfDiM532GZFs3pnrAKVqrriqJBMH8Y5DirxhLDrS","status":"active","consec":0,"wins":0,"losses":0,"added":"2026-10-29 03:16:41 WIB","dropped":null}],"drops":[],"funnel":{"buy_events":1,"mints_seen":1,"evaluated":{"kill":1},"watchlist":0,"leads":1,"rechecks":0,"filter":{"KILL":1,"SURVIVES":0,"INCOMPLETE":0},"kill_rules":{"4 no bundled launch buys":1},"judge":{"buy":0,"watch":0,"pass":0},"approvals":0,"scout_signals":2,"scout_filter":{"KILL":2,"SURVIVES":0,"INCOMPLETE":0},"recent_leads":[{"t":"2026-10-29 03:16:53 WIB","symbol":"GTA6","wallets":["g41t3r98"],"verdict":"KILL","failed":["4 no bundled launch buys"],"unknown":[],"recheck":false}],"recent_judgments":[],"recent_approvals":[]},"report24h":"PAPER DESK SUMMARY - last 24h, as of 2026-10-29 03:27 WIB (simulation only, no real trades)\nLeads: 1 new mints checked (1 unique), 0 watch rechecks\nFilter: 1 KILL, 0 SURVIVES, 0 INCOMPLETE\n   kills by rule 4 no bundled launch buys: 1\nJudge (Jev, after gate): buy 0, watch 0, pass 0\nJudge-passed but filter-clean: 0; dead-within-24h not computable yet (no 24h readings)\nPaper trades closed: 0  W/L 0/0  P&L after fees $+0.00  (fees paid $0.00)\nNote: $10 size with $0.95 min fee per side = $1.90 round trip -> a trade needs ~+21% just to break even."}</script>
+<script>
+const D=JSON.parse(document.getElementById('desk-data').textContent);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const usd=(x,sign)=>x==null?'<span class="mut">n/a</span>':`<span class="${sign?(x>0?'pos':x<0?'neg':''):''}">${sign&&x>0?'+':''}${x<0?'-':''}$${Math.abs(x).toFixed(2)}</span>`;
+const pct=x=>x==null?'<span class="mut">n/a</span>':`<span class="${x>0?'pos':x<0?'neg':''}">${x>0?'+':''}${Number(x).toFixed(1)}%</span>`;
+const px=x=>x==null?'<span class="mut">n/a</span>':Number(x).toPrecision(4);
+const big=x=>x==null?'n/a':(x<0?'-':'')+'$'+(Math.abs(x)>=1e6?(Math.abs(x)/1e6).toFixed(2)+'M':Math.abs(x)>=1e3?(Math.abs(x)/1e3).toFixed(1)+'k':Math.abs(x).toFixed(0));
+const sw=w=>w?`<span class="mono" title="${esc(w)}">${esc(w.slice(0,4))}..${esc(w.slice(-4))}</span>`:'';
+const kpi=(l,v,s)=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+const table=(h,rows)=>`<div class="tw"><table><thead><tr>${h.map(c=>`<th class="${c[1]||''}">${c[0]}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+const tsw=t=>t?esc(t.replace(' WIB','')):'<span class="mut">-</span>';
+$('gen').textContent=D.generated; if(D.last_desk_write)$('lastw').textContent='Last desk data write: '+D.last_desk_write;
+// balance
+const B=D.balance,P=B.plan||{};
+$('bal').innerHTML=kpi('Equity (sim)',usd(B.equity),`start $${B.bank_start} + realized + unrealized`)
+ +kpi('Realized P&L',usd(B.realized,1),'net of entry+exit fees')
+ +kpi('Unrealized P&L',B.open_count?usd(B.unrealized,1):'<span class="mut">$0.00</span>',B.open_count?`${B.unreal_known}/${B.open_count} positions priced, after est. exit fee`:'no open positions')
+ +kpi('Free cash (sim)',usd(B.free_cash),`$${B.deployed} deployed in ${B.open_count}/${P.max_open_positions||3} slots`)
+ +kpi('Halt line',`$${P.halt_balance_usd??'n/a'}`,`${esc(P.halt_action||'')}`);
+const mx=Math.max(B.bank_start*1.5,B.equity),w=Math.max(0,Math.min(100,100*B.equity/mx)),hl=100*(P.halt_balance_usd||0)/mx;
+$('meter').innerHTML=`<div class="meter" title="equity vs halt line"><i style="width:${w}%;background:${B.equity<=(P.halt_balance_usd||0)?'var(--r)':B.equity<B.bank_start?'var(--y)':'var(--g)'}"></i><b style="left:${hl}%"></b></div>`;
+$('balnote').innerHTML=`Plan status: <b class="warn">${esc(P.status)}</b> &middot; size $${P.position_size_usd} equal-weight, max ${P.max_open_positions} open &middot; fee reserve $${P.fee_reserve_usd}, loss buffer $${P.loss_buffer_usd}, first ${P.first_test_trades} test trades.<br>
+Fees: max(${(B.fee_rate*100).toFixed(1)}%, $${B.fee_min}) per side &rarr; a $${P.position_size_usd} trade needs ~+${B.breakeven_pct}% to break even. Exits: ${esc(B.exit_rules)}.`;
+// positions
+$('poscount').textContent=`(${D.positions.length}/${P.max_open_positions||3})`;
+$('pos').innerHTML=D.positions.length?table([['#'],['Token'],['Trader'],['Entry (WIB)'],['Entry','n'],['Last','n'],['Move','n'],['Peak','n'],['Stop -25%','n'],['Trail','n'],['Unreal. $','n'],['Unreal. %','n'],['Time stop']],
+ D.positions.map(p=>`<tr><td>${esc(p.id)}</td><td><b>${esc(p.symbol)}</b><br>${sw(p.mint)}</td><td>@${esc(p.trader)}</td><td>${tsw(p.opened)}</td><td class="n">${px(p.entry)}</td>
+ <td class="n">${px(p.last)}${p.last_check?`<br><span class="mut">${tsw(p.last_check).slice(11)}</span>`:''}</td><td class="n">${pct(p.move_pct)}</td><td class="n">${px(p.peak)}<br>${pct(p.peak_pct)}</td>
+ <td class="n">${px(p.stop)}</td><td class="n">${px(p.trail)}</td><td class="n">${usd(p.unreal_usd,1)}</td><td class="n">${pct(p.unreal_pct)}</td><td>${tsw(p.time_stop_at)}</td></tr>`))
+ :`<div class="empty">No open paper positions. Up to ${P.max_open_positions||3} at $${P.position_size_usd||10} each; stop set at ${B.stop_pct}% before entry.</div>`;
+// stats
+const S=D.stats;
+$('st').innerHTML=kpi('Closed trades',S.total,`${S.wins} W / ${S.losses} L`)+kpi('Win rate',S.win_rate==null?'<span class="mut">-</span>':S.win_rate+'%')
+ +kpi('Total P&L',usd(S.realized,1),'realized, after fees')+kpi('Fees paid',usd(S.fees_closed+S.fees_open),`closed $${S.fees_closed.toFixed(2)} + open entries $${S.fees_open.toFixed(2)}`)
+ +kpi('Avg win',usd(S.avg_win,1))+kpi('Avg loss',usd(S.avg_loss,1))
+ +kpi('Best',S.best?usd(S.best.pnl_usd,1):'<span class="mut">-</span>',S.best?`${esc(S.best.symbol)} ${pct(S.best.pnl_pct)}`:'')
+ +kpi('Worst',S.worst?usd(S.worst.pnl_usd,1):'<span class="mut">-</span>',S.worst?`${esc(S.worst.symbol)} ${pct(S.worst.pnl_pct)}`:'')
+ +(S.total?kpi('Exit reasons','<span style="font-size:13px">'+Object.entries(S.reasons).map(([k,v])=>esc(k)+' &times;'+v).join('<br>')+'</span>'):'');
+// history
+$('hist').innerHTML=D.trades.length?table([['#'],['Closed (WIB)'],['Opened (WIB)'],['Token'],['Trader'],['Entry','n'],['Exit','n'],['Move','n'],['P&L $','n'],['P&L %','n'],['Fees','n'],['Held','n'],['Exit reason']],
+ D.trades.map(t=>`<tr><td>${esc(t.id)}</td><td>${tsw(t.closed)}</td><td>${tsw(t.opened)}</td><td><b>${esc(t.symbol)}</b></td><td>@${esc(t.trader)}</td><td class="n">${px(t.entry)}</td><td class="n">${px(t.exit)}</td>
+ <td class="n">${pct(t.move_pct)}</td><td class="n">${usd(t.pnl_usd,1)}</td><td class="n">${pct(t.pnl_pct)}</td><td class="n">$${(t.fees_usd||0).toFixed(2)}</td><td class="n">${t.held_min==null?'':t.held_min+'m'}</td>
+ <td>${esc(t.reason)}${t.slippage_pct!=null?` <span class="mut">(slip ${t.slippage_pct}%)</span>`:''}</td></tr>`))
+ :'<div class="empty">No closed paper trades yet. Trades appear here when the judge gate says BUY and Guard later closes the position.</div>';
+// traders
+const dots=n=>'<span class="dots">'+[0,1,2].map(i=>`<span class="${i<n?'on':''}"></span>`).join('')+'</span>';
+const pill=s=>`<span class="pill ${s==='active'?'p-act':s==='dropped'?'p-drop':'p-bench'}">${esc(s)}</span>`;
+$('tr').innerHTML=D.traders.length?table([['Rank','n'],['Handle'],['7d PnL','n'],['24h','n'],['30d','n'],['Trades','n'],['Wallet'],['Consec. losses'],['Desk W/L','n'],['Status']],
+ D.traders.map(t=>`<tr><td class="n">${t.rank??''}</td><td><b>@${esc(t.handle)}</b>${t.verified?' <span class="mut" title="verified wallet">&#10003;</span>':''}</td>
+ <td class="n ${t.pnl7d>0?'pos':'neg'}">${big(t.pnl7d)}</td><td class="n mut">${big(t.pnl24h)}</td><td class="n mut">${big(t.pnl30d)}</td><td class="n">${t.trades??''}</td><td>${sw(t.wallet)}</td>
+ <td>${dots(t.consec)} ${t.consec}/${D.loss_limit}</td><td class="n">${t.wins}/${t.losses}</td><td>${pill(t.status)}${t.dropped?`<br><span class="mut">${tsw(t.dropped)}</span>`:''}</td></tr>`))
+ +`<div class="note">Status: <b>active</b> = desk is copying this wallet; <b>bench</b> = on the board but not yet activated (desk runs the best-scored N, default 5, and promotes the next one when a trader is dropped); <b>dropped</b> = hit ${D.loss_limit} losses in a row (guard.record_result).</div>`
+ :'<div class="empty">wallets.json is empty - no leaderboard loaded.</div>';
+$('offb').innerHTML=(D.off_board.length?`<div class="note" style="margin-top:12px"><b>Also in traders.json but not in the current 7d top 10</b> (still polled by the desk while active):</div>`+table([['Handle'],['Wallet'],['Consec. losses'],['W/L','n'],['Status'],['Added']],
+ D.off_board.map(t=>`<tr><td>@${esc(t.handle)}</td><td>${sw(t.wallet)}</td><td>${dots(t.consec)} ${t.consec}/${D.loss_limit}</td><td class="n">${t.wins}/${t.losses}</td><td>${pill(t.status)}</td><td>${tsw(t.added)}</td></tr>`)):'')
+ +(D.drops.length?'<div class="note"><b>Trader drops:</b><br>'+D.drops.map(d=>`${tsw(d.t)} - ${esc(d.detail)}`).join('<br>')+'</div>':'');
+// funnel
+const F=D.funnel,mxF=Math.max(1,F.mints_seen,F.leads,F.scout_signals);
+const step=(l,v,s)=>`<div class="step"><div class="mut">${l}</div><div class="v">${v}</div>${s?`<div class="mut" style="font-size:12px">${s}</div>`:''}<div class="bar"><i style="width:${100*Math.min(1,(+v||0)/mxF)}%"></i></div></div>`;
+const ev=Object.entries(F.evaluated).map(([k,v])=>`${esc(k)} ${v}`).join(', ');
+let fh=`<div class="funnel">${step('Trader buys seen (desk)',F.mints_seen,`${F.buy_events} buy events${ev?' &middot; evaluated: '+ev:''}`)}
+${step('Filter checks',F.leads,`<span class="neg">KILL ${F.filter.KILL}</span> &middot; <span class="pos">pass ${F.filter.SURVIVES}</span> &middot; incomplete ${F.filter.INCOMPLETE}${F.rechecks?' &middot; rechecks '+F.rechecks:''}`)}
+${step('Judge (after gate)',F.judge.buy+F.judge.watch+F.judge.pass,`<span class="pos">buy ${F.judge.buy}</span> &middot; <span class="warn">watch ${F.judge.watch}</span> &middot; skip ${F.judge.pass}${F.watchlist?' &middot; on watch '+F.watchlist:''}`)}
+${step('Approvals (paper)',F.approvals,'APPROVE signals written')}
+${F.scout_signals?step('Scout prototype signals',F.scout_signals,`KILL ${F.scout_filter.KILL} &middot; pass ${F.scout_filter.SURVIVES} &middot; incomplete ${F.scout_filter.INCOMPLETE} (placeholder wallets)`):''}</div>`;
+const kr=Object.entries(F.kill_rules); if(kr.length)fh+=`<div class="note">Filter kills by rule: ${kr.map(([k,v])=>esc(k)+' &times;'+v).join(' &middot; ')}</div>`;
+if(F.recent_leads.length)fh+=`<details style="margin-top:10px"><summary>Recent filter checks (${F.recent_leads.length})</summary>`+table([['Time (WIB)'],['Token'],['Trader(s)'],['Verdict'],['Failed / unknown']],
+ F.recent_leads.map(x=>`<tr><td>${tsw(x.t)}</td><td>${esc(x.symbol)}${x.recheck?' <span class="mut">(recheck)</span>':''}</td><td>${esc((x.wallets||[]).map(h=>'@'+h).join(' '))}</td><td class="${x.verdict==='KILL'?'neg':x.verdict==='SURVIVES'?'pos':'warn'}">${esc(x.verdict)}</td><td class="mut">${esc((x.failed||[]).concat((x.unknown||[]).map(u=>u+' ?')).join(', '))}</td></tr>`))+'</details>';
+if(F.recent_judgments.length)fh+=`<details><summary>Recent judgments (${F.recent_judgments.length})</summary>`+table([['Time (WIB)'],['Token'],['Gate'],['Reason']],F.recent_judgments.map(x=>`<tr><td>${tsw(x.t)}</td><td>${esc(x.symbol)}</td><td>${esc(x.gate)}</td><td class="mut">${esc(x.reason)}</td></tr>`))+'</details>';
+if(F.recent_approvals.length)fh+=`<details><summary>Recent approvals (${F.recent_approvals.length})</summary>`+table([['Time (WIB)'],['#'],['Token'],['Trader'],['Status']],F.recent_approvals.map(x=>`<tr><td>${tsw(x.t)}</td><td>${esc(x.id)}</td><td>${esc(x.symbol)}</td><td>@${esc(x.trader)}</td><td class="mut">${esc(x.status)}</td></tr>`))+'</details>';
+if(!F.mints_seen&&!F.leads&&!F.scout_signals)fh='<div class="empty">No pipeline activity recorded yet.</div>';
+$('fun').innerHTML=fh;
+$('rep').textContent=D.report24h;
+</script></body></html>
